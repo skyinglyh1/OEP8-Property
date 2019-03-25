@@ -179,6 +179,7 @@ def transfer(fromAcct, toAcct, tokenId, amount):
     :param amount:
     :return:
     """
+    assert (_whenNotPaused())
     assert (CheckWitness(fromAcct))
     assert (_tokenExist(tokenId))
     assert (len(fromAcct) == 20)
@@ -224,6 +225,7 @@ def approve(owner, spender, tokenId, amount):
     :param amount:
     :return:
     """
+    assert (_whenNotPaused())
     # make sure the invoker is the owner address
     assert (CheckWitness(owner))
     # make sure the address is legal
@@ -274,6 +276,7 @@ def transferFrom(spender, fromAcct, toAcct, tokenId, amount):
     :param amount: False or True
     :return:
     """
+    assert (_whenNotPaused())
     assert (CheckWitness(spender))
     assert (len(fromAcct) == 20)
     assert (len(toAcct) == 20)
@@ -338,6 +341,7 @@ def setCLevel(option, account):
     return True
 
 def createToken(tokenId, name, symbol):
+    assert (_whenNotPaused())
     assert (CheckWitness(CEOAddress))
     assert (not name(tokenId))
     assert (_checkLegalTokenId(tokenId))
@@ -351,7 +355,6 @@ def createToken(tokenId, name, symbol):
 
 def multiCreateToken(args):
     """
-
     :param tokenIdList:
     :param nameList:
     :param symbolList:
