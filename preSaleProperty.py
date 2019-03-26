@@ -137,11 +137,15 @@ def migrateContract(code, needStorage, name, version, author, email, description
     assert (_whenNotPaused() == False)
     param = state(SelfContractAddress)
     totalOngAmount = Invoke(0, ONGAddress, 'balanceOf', param)
-    # TODO
-    newContractHash = AddressFromVmCode(code)
 
+    # Option1: TODO
+    newContractHash = AddressFromVmCode(code)
     res = _tranferNativeAsset(ONGAddress, SelfContractAddress, newContractHash, totalOngAmount)
     assert (res)
+
+    # Option2: make sure there is no ong left
+    assert (totalOngAmount == 0)
+
     res = Migrate(code, needStorage, name, version, author, email, description)
     assert (res)
     Notify(["migreate"])
