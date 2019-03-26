@@ -139,9 +139,9 @@ def migrateContract(code, needStorage, name, version, author, email, description
     totalOngAmount = Invoke(0, ONGAddress, 'balanceOf', param)
 
     # Option1: TODO
-    newContractHash = AddressFromVmCode(code)
-    res = _tranferNativeAsset(ONGAddress, SelfContractAddress, newContractHash, totalOngAmount)
-    assert (res)
+    # newContractHash = AddressFromVmCode(code)
+    # res = _tranferNativeAsset(ONGAddress, SelfContractAddress, newContractHash, totalOngAmount)
+    # assert (res)
 
     # Option2: make sure there is no ong left
     assert (totalOngAmount == 0)
