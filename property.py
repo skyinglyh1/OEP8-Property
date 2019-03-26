@@ -350,7 +350,7 @@ def createToken(tokenId, name, symbol):
     Put(GetContext(), _concatkey(SYMBOL_PREFIX, tokenId), symbol)
     # By default, the total supply is zero
 
-    Notify(["createProperty", tokenId, name, symbol])
+    Notify(["createToken", tokenId, name, symbol])
     return True
 
 def multiCreateToken(args):
