@@ -21,6 +21,7 @@ PRESALE_PAUSED_KEY = "Pause"
 
 
 def Main(operation, args):
+    ############# Methods for Admin account only defination Starts  ################
     if operation == "setPropertyHash":
         assert (len(args) == 1)
         propertyReversedHash = args[0]
@@ -36,24 +37,26 @@ def Main(operation, args):
         toAcct = args[0]
         amount = args[1]
         return withdraw(toAcct, amount)
-
-
-
+    if operation == "pause":
+        return pause()
+    if operation == "unpause":
+        return unpause()
+    ############# Methods for Admin account only defination Ends  ################
+    #################### Purchase method for player Starts  ######################
     if operation == "purchase":
         assert (len(args) == 2)
         account = args[0]
         gpId = args[1]
         return purchase(account, gpId)
-
-
+    #################### Purchase method for player Ends  ######################
+    #################### Pre-execute methods defination Starts  ######################
     if operation == "getPropertyReversedHash":
         return getPropertyReversedHash()
     if operation == "getGP":
         assert (len(args) == 1)
         gpId = args[0]
         return getGP(gpId)
-
-
+    #################### Pre-execute methods defination Ends  ######################
     return False
 
 ############# Methods for Admin account only defination Starts  ################
