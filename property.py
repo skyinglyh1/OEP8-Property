@@ -3,11 +3,11 @@ OntCversion = '2.0.0'
 This is the property smart contract of OEP-8 type
 """
 from ontology.interop.System.Storage import GetContext, Get, Put, Delete
-from ontology.interop.System.Runtime import CheckWitness, Notify, Deserialize
+from ontology.interop.System.Runtime import CheckWitness, Notify, Deserialize, Serialize
 from ontology.interop.System.Action import RegisterAction
 
 from ontology.interop.Ontology.Runtime import Base58ToAddress
-from ontology.builtins import concat, len, append
+from ontology.builtins import concat, len, append, remove
 
 
 
@@ -22,7 +22,7 @@ AUTHORIZED_ADDRESS_LIST_KEY = "AuthorizedAddress"
 CEOAddress = Base58ToAddress('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
 
 
-CONTRACT_UNPAUSED_KEY = "Pause"
+CONTRACT_PAUSED_KEY = "Pause"
 # NAME_PREFIX + tokenId --- to store the name of the tokenId token
 NAME_PREFIX = 'Name'
 # SYMBOL_PREFIX + tokenId --- to store the symbol of the tokenId token
@@ -95,6 +95,14 @@ def Main(operation, args):
         option = args[0]
         account = args[1]
         return setCLevel(option, account)
+    if operation == "setAuthorizedLevel":
+        assert (len(args) == 1)
+        account = args[0]
+        return setAuthorizedLevel(account)
+    if operation == "removeAuthorizedLevel":
+        assert (len(args) == 1)
+        account = args[0]
+        return removeAuthorizedLevel(account)
     if operation == "createToken":
         assert (len(args) == 3)
         tokenId = args[0]
@@ -133,7 +141,13 @@ def Main(operation, args):
         return getCTO()
     if operation == "getCOO":
         return getCOO()
+    if operation == "getAuthorizedLevel":
+        return getAuthorizedLevel()
     #################### Optional methods defination Ends ######################
+    if operation == "_tokenExist":
+        assert (len(args) == 1)
+        tokenId = args[0]
+        return _tokenExist(tokenId)
     return False
 
 ########################## Methods that meet the OEP8 protocal Starts ############################
@@ -340,6 +354,40 @@ def setCLevel(option, account):
     Notify(["setCLevel", option, account])
     return True
 
+def setAuthorizedLevel(account):
+    assert (CheckWitness(CEOAddress))
+    assert (len(account) == 20)
+    authorizedAddressList = []
+    authorizedAddressListInfo = Get(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY)
+    if not authorizedAddressListInfo:
+        authorizedAddressList.append(account)
+    else:
+        authorizedAddressList = Deserialize(authorizedAddressListInfo)
+        if _checkInList(account, authorizedAddressList):
+            Notify(["alreadyInAuthorizedLevel", account])
+            return True
+        else:
+            authorizedAddressList.append(account)
+    Put(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY, Serialize(authorizedAddressList))
+    Notify(["setAuthorizedLevel", account])
+    return True
+
+def removeAuthorizedLevel(account):
+    assert (CheckWitness(CEOAddress))
+    assert (len(account) == 20)
+    authorizedAddressListInfo = Get(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY)
+    assert (authorizedAddressListInfo)
+    authorizedAddressList = Deserialize(authorizedAddressListInfo)
+    assert (_checkInList(account, authorizedAddressList))
+    index = _findInList(account, authorizedAddressList)
+    # make sure index did exist in authorizedAddressList
+    assert (index < len(authorizedAddressList) - 1)
+    authorizedAddressList.remove(index)
+    Put(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY, Serialize(authorizedAddressList))
+    Notify(["removeAuthorizedLevel", account])
+    return True
+
+
 def createToken(tokenId, name, symbol):
     assert (_whenNotPaused())
     assert (CheckWitness(CEOAddress))
@@ -371,13 +419,13 @@ def multiCreateToken(args):
 ############# Special methods for C Level accounts only defination Starts  ################
 def pause():
     assert (_onlyCLevel())
-    Put(GetContext(), CONTRACT_UNPAUSED_KEY, "F")
+    Put(GetContext(), CONTRACT_PAUSED_KEY, "T")
     Notify(["pause"])
     return True
 
 def unpause():
     assert (_onlyCLevel())
-    Put(GetContext(), CONTRACT_UNPAUSED_KEY, "T")
+    Put(GetContext(), CONTRACT_PAUSED_KEY, "F")
     Notify(["unpause"])
     return True
 ############# Special methods for C Level accounts only defination Ends  ################
@@ -447,6 +495,13 @@ def getCOO():
     :return: the COO address
     """
     return Get(GetContext(), COO_ADDRESS_KEY)
+
+def getAuthorizedLevel():
+    authorizedAddressListInfo = Get(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY)
+    if  authorizedAddressListInfo:
+        return Deserialize(authorizedAddressListInfo)
+    else:
+        return []
 #################### Optional methods defination Ends ######################
 
 
@@ -469,11 +524,11 @@ def _onlyAuthorizedLevel():
     return False
 
 def _whenNotPaused():
-    notPaused = Get(GetContext(), CONTRACT_UNPAUSED_KEY)
-    if notPaused == "T":
-        return True
-    elif notPaused == "F":
+    isPaused = Get(GetContext(), CONTRACT_PAUSED_KEY)
+    if isPaused == "T":
         return False
+    elif isPaused == "F":
+        return True
 
 def _checkLegalTokenId(tokenId):
     """
@@ -488,6 +543,21 @@ def _tokenExist(tokenId):
         return True
     else:
         return False
+
+def _checkInList(e, l):
+    for eInl in l:
+        if eInl == e:
+            return True
+    return False
+
+def _findInList(e, l):
+    index = 0
+    for eInl in l:
+        if eInl == e:
+            return index
+        index = index + 1
+    return index
+
 
 def _concatkey(str1, str2):
     return concat(concat(str1, '_'), str2)
