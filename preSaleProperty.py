@@ -7,7 +7,7 @@ from ontology.interop.System.ExecutionEngine import GetExecutingScriptHash
 from ontology.interop.Ontology.Native import Invoke
 from ontology.interop.Ontology.Runtime import Base58ToAddress
 from ontology.builtins import concat, state, append
-
+from ontology.libont import AddressFromVmCode
 
 ONTAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01')
 ONGAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02')
@@ -41,6 +41,16 @@ def Main(operation, args):
         return pause()
     if operation == "unpause":
         return unpause()
+    if operation == "migrateContract":
+        assert (len(args) == 7)
+        code = args[0]
+        needStorage = args[1]
+        name = args[2]
+        version = args[3]
+        author = args[4]
+        email = args[5]
+        description = args[6]
+        return migrateContract(code, needStorage, name, version, author, email, description)
     ############# Methods for Admin account only defination Ends  ################
     #################### Purchase method for player Starts  ######################
     if operation == "purchase":
@@ -120,6 +130,21 @@ def unpause():
     assert (CheckWitness(Admin))
     Put(GetContext(), PRESALE_PAUSED_KEY, "F")
     Notify(["unpause"])
+    return True
+
+def migrateContract(code, needStorage, name, version, author, email, description):
+    assert (CheckWitness(Admin))
+    assert (_whenNotPaused() == False)
+    param = state(SelfContractAddress)
+    totalOngAmount = Invoke(0, ONGAddress, 'balanceOf', param)
+    # TODO
+    newContractHash = AddressFromVmCode(code)
+
+    res = _tranferNativeAsset(ONGAddress, SelfContractAddress, newContractHash, totalOngAmount)
+    assert (res)
+    res = Migrate(code, needStorage, name, version, author, email, description)
+    assert (res)
+    Notify(["migreate"])
     return True
 ############# Methods for Admin account only defination Ends  ################
 
