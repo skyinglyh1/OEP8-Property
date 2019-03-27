@@ -385,7 +385,6 @@ def removeAuthorizedLevel(account):
 
 
 def createToken(tokenId, name, symbol):
-    assert (_whenNotPaused())
     assert (CheckWitness(CEOAddress))
     assert (not name(tokenId))
     assert (_checkLegalTokenId(tokenId))
