@@ -239,7 +239,7 @@ def approve(owner, spender, tokenId, amount):
     # make sure the invoker is the owner address
     assert (CheckWitness(owner))
     # make sure the address is legal
-    assert (len(spender))
+    assert (len(spender) == 20)
     assert (_tokenExist(tokenId))
 
     ownerBalance = balanceOf(owner, tokenId)
@@ -296,7 +296,7 @@ def transferFrom(spender, fromAcct, toAcct, tokenId, amount):
     fromBalance = Get(GetContext(), fromKey)
     assert (fromBalance >= amount)
     assert (amount > 0)
-    toKey = _concatkey(_concatkey(tokenId, BALANCE_PREFIX), toAcct)
+    toKey = _concatkey(_concatkey(BALANCE_PREFIX, tokenId), toAcct)
 
 
     approvedKey = _concatkey(_concatkey(_concatkey(APPROVE_PREFIX, tokenId), fromAcct), spender)
@@ -461,11 +461,18 @@ def burnToken(account, tokenId, amount):
     assert (_tokenExist(tokenId))
     # make sure the amount is legal, which is greater than ZERO
     balance = balanceOf(account, tokenId)
-    assert (amount > 0 and amount < balance)
+    assert (amount > 0 and amount <= balance)
     # update the to account balance
-    Put(GetContext(), _concatkey(_concatkey(BALANCE_PREFIX, tokenId), account), balance - amount)
+    if amount == balance:
+        Delete(GetContext(), _concatkey(_concatkey(BALANCE_PREFIX, tokenId), account))
+    else:
+        Put(GetContext(), _concatkey(_concatkey(BALANCE_PREFIX, tokenId), account), balance - amount)
     # update the total supply
-    Put(GetContext(), _concatkey(TOTAL_SUPPLY_PREFIX, tokenId), totalSupply(tokenId) - amount)
+    _totalSupply = totalSupply(tokenId)
+    if _totalSupply == amount:
+        Delete(GetContext(), _concatkey(TOTAL_SUPPLY_PREFIX, tokenId))
+    else:
+        Put(GetContext(), _concatkey(TOTAL_SUPPLY_PREFIX, tokenId), _totalSupply - amount)
     # Notify the event to the block chain
     TransferEvent(account, "", tokenId, amount)
     return True
