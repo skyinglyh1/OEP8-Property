@@ -97,11 +97,13 @@ This is the pre sale smart contract for property tokens.
 
 ```Admin``` account can set the reversed property contract hash in the pre sale contract.
 
-2. ```setGP(gpId, price, gpContent)```
+2. ```setGP(gpId, gpLimit, price, gpContent)```
 
 ```Admin``` account can set(or add) the gift package.
 
 ```gpId``` is can be anything, as long as we keep the format next time we need to pass in gpId.
+
+```gpLimit``` is the available amount of gift package
 
 ```price``` should be the ONG amount for gpId gift package. Say, if we mean 2 ONG, we should set the price as 2000000000.
 
@@ -131,6 +133,12 @@ Return the reversed property smart contract hash
 ```gpId``` refers to a specific gift package.
 
 Return ```[price, [[tokenId1, amount1], [tokenId2, amount2], ..., [tokenIdN, amountN]]]```
+
+10. ```getGPLeft(gpId)```
+
+```gpId``` refers to a specific gift package.
+
+Return the number of gift packages left available for sale.
 
 
 #### preSale Property Contract Instruction
