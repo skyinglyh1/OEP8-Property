@@ -16,6 +16,7 @@ Admin = Base58ToAddress("AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p")
 SelfContractAddress = GetExecutingScriptHash()
 # GP means gift package
 GP_PREFIX = "GPContent"
+GP_LEFT_PREFIX = "GPLeft"
 PROPERTY_REVERSED_HASH_KEY = "PropertyHash"
 PRESALE_PAUSED_KEY = "Pause"
 
@@ -27,11 +28,12 @@ def Main(operation, args):
         propertyReversedHash = args[0]
         return setPropertyHash(propertyReversedHash)
     if operation == "setGP":
-        assert (len(args) == 3)
+        assert (len(args) == 4)
         gpId = args[0]
-        price = args[1]
-        gpContent = args[2]
-        return setGP(gpId, price, gpContent)
+        gpLimit = args[1]
+        price = args[2]
+        gpContent = args[3]
+        return setGP(gpId, gpLimit, price, gpContent)
     if operation == "withdraw":
         assert (len(args) == 22)
         toAcct = args[0]
@@ -66,6 +68,10 @@ def Main(operation, args):
         assert (len(args) == 1)
         gpId = args[0]
         return getGP(gpId)
+    if operation == "getGPLeft":
+        assert (len(args) == 1)
+        gpId = args[0]
+        return getGPLeft(gpId)
     #################### Pre-execute methods defination Ends  ######################
     return False
 
@@ -77,10 +83,11 @@ def setPropertyHash(propertyReversedHash):
     return True
 
 
-def setGP(gpId, price, gpContent):
+def setGP(gpId, gpLimit, price, gpContent):
     """
     :param gpId: token as the identity of gift package
-    :param price: how much ong does this gpId will be sold
+    :param price: how many ong does this gpId will be sold
+    :param gpLimit: how many gift packages (GP) will be available.
     :param gpContent: [[tokenId1, amount1], [tokenId2, amount2], ..., [tokenIdN, amountN]]
     :return:
     """
@@ -88,6 +95,7 @@ def setGP(gpId, price, gpContent):
     gpKey = _concatkey(GP_PREFIX, gpId)
     assert (not Get(GetContext(), gpKey))
     gpMap = {"price":price}
+    assert (gpLimit > 0)
     content = []
     # ta means [tokenId_n, amount_n]
     for ta in gpContent:
@@ -97,15 +105,16 @@ def setGP(gpId, price, gpContent):
         assert (tokenId >= 1001 and tokenId <= 999999)
         # make sure the tokenId has been created in property contract <=> name of tokenId is NOT None
         res = DynamicAppCall(getPropertyReversedHash(), "name", [tokenId])
-        assert (not res)
+        assert ( res)
         assert (amount > 0)
         content.append([tokenId, amount])
     contentInfo = Serialize(content)
     gpMap["content"] = contentInfo
     # put the gp info into the storage
     Put(GetContext(), _concatkey(GP_PREFIX, gpId), Serialize(gpMap))
-
-    Notify(["setGP", gpId, price, gpContent])
+    # update the left gift package number in storage
+    Put(GetContext(), _concatkey(GP_LEFT_PREFIX, gpId), gpLimit)
+    Notify(["setGP", gpId, gpLimit, price, gpContent])
     return True
 
 
@@ -166,6 +175,9 @@ def purchase(account, gpId):
     """
     assert (_whenNotPaused())
     assert (CheckWitness(account))
+    # make sure there are enough available gift packages left
+    gpLeft = getGPLeft(gpId)
+    assert (gpLeft > 0)
     # get the gift package info
     priceContent = getGP(gpId)
     assert (len(priceContent) == 2)
@@ -179,8 +191,8 @@ def purchase(account, gpId):
         tokenId = ta[0]
         amount = ta[1]
         argsForMultiMintToken.append([account, tokenId, amount])
-
     assert (DynamicAppCall(getPropertyReversedHash(), "multiMintToken", argsForMultiMintToken))
+    Put(GetContext(), _concatkey(GP_LEFT_PREFIX, gpId), gpLeft - 1)
     Notify(["purchase", account, gpId, price])
     return True
 #################### Purchase method for player Ends  ######################
@@ -200,6 +212,9 @@ def getGP(gpId):
     contentInfo = gpMap["content"]
     content = Deserialize(contentInfo)
     return [price, content]
+
+def getGPLeft(gpId):
+    return Get(GetContext(), _concatkey(GP_LEFT_PREFIX, gpId))
 #################### Pre-execute methods defination Ends  ######################
 
 
