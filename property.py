@@ -509,8 +509,14 @@ def getAuthorizedLevel():
 #################### Private methods defination starts ######################
 def _onlyCLevel():
     isCEO = CheckWitness(CEOAddress)
-    isCTO = CheckWitness(getCTO())
-    isCOO = CheckWitness(getCOO())
+    isCTO = None
+    isCOO = None
+    CTOAddress = getCTO()
+    if len(CTOAddress) == 20:
+        isCTO = CheckWitness(CTOAddress)
+    COOAddress = getCOO()
+    if len(COOAddress) == 20:
+        isCOO = CheckWitness(COOAddress)
     return isCEO or isCTO or isCOO
 
 def _onlyAuthorizedLevel():
