@@ -135,13 +135,16 @@ Return ```[price, [[tokenId1, amount1], [tokenId2, amount2], ..., [tokenIdN, amo
 
 #### preSale Property Contract Instruction
 ```markdown
-a. "setGP" method helps to create multiple different gift package for the pre sale.
-
-b. "setPropertyHash(propertyReversedHash)" method helps to connect the preSale contract with the property contract. 
+a. "setPropertyHash(propertyReversedHash)" method helps to connect the preSale contract with the property contract. 
     propertyReversedHash should be the reversed contract hash of property contract.
     Say, if the property contract hash is cc76b7ac2839fd5937c50fa0317af6337c1c4e07,
     then, the propertyReversedHash should be 074e1c7c33f67a31a00fc53759fd3928acb776cc.
     This helps preSaleProperty contract dynamically call Property contract to mint tokens and transfer the tokens to the buyer. 
+
+
+b. "setGP" method helps to create multiple different gift package for the pre sale.
+    b.1 make sure the same gpId has not been set before.
+    b.2 make sure the tokenIds within the gpId gift package should be created within Property contract.
 
 c. Before invoking "purchase", make sure 
     c.1 the contract is in unpause status. The default status of property contract is neither "pause" nor "unpause" after the deployment of contract.
