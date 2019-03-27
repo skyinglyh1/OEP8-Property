@@ -386,7 +386,7 @@ def removeAuthorizedLevel(account):
 
 def createToken(tokenId, name, symbol):
     assert (CheckWitness(CEOAddress))
-    assert (not name(tokenId))
+    assert (not _tokenExist(tokenId))
     assert (_checkLegalTokenId(tokenId))
     # Put name and symbol in storage
     Put(GetContext(), _concatkey(NAME_PREFIX, tokenId), name)
