@@ -95,9 +95,9 @@ def setGP(gpId, price, gpContent):
         amount = ta[1]
         # make sure the tokenId is legal
         assert (tokenId >= 1001 and tokenId <= 999999)
-        # make sure the tokenId has been created in property contract
-        res = DynamicAppCall(getPropertyReversedHash(), "_tokenExist", [tokenId])
-        assert (res)
+        # make sure the tokenId has been created in property contract <=> name of tokenId is NOT None
+        res = DynamicAppCall(getPropertyReversedHash(), "name", [tokenId])
+        assert (not res)
         assert (amount > 0)
         content.append([tokenId, amount])
     contentInfo = Serialize(content)

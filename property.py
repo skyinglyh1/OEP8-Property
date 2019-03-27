@@ -144,10 +144,6 @@ def Main(operation, args):
     if operation == "getAuthorizedLevel":
         return getAuthorizedLevel()
     #################### Optional methods defination Ends ######################
-    if operation == "_tokenExist":
-        assert (len(args) == 1)
-        tokenId = args[0]
-        return _tokenExist(tokenId)
     return False
 
 ########################## Methods that meet the OEP8 protocal Starts ############################
