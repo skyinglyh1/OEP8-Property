@@ -19,7 +19,7 @@ GP_PREFIX = "GPContent"
 GP_LEFT_PREFIX = "GPLeft"
 PROPERTY_REVERSED_HASH_KEY = "PropertyHash"
 PRESALE_PAUSED_KEY = "Pause"
-
+GP_MAX_PER_TX_KEY = "GPMaxPerTx"
 
 def Main(operation, args):
     ############# Methods for Admin account only defination Starts  ################
@@ -34,8 +34,12 @@ def Main(operation, args):
         price = args[2]
         gpContent = args[3]
         return setGP(gpId, gpLimit, price, gpContent)
+    if operation == "setGPMaxPerTx":
+        assert (len(args) == 1)
+        limit = args[0]
+        return setGPMaxPerTx(limit)
     if operation == "withdraw":
-        assert (len(args) == 22)
+        assert (len(args) == 2)
         toAcct = args[0]
         amount = args[1]
         return withdraw(toAcct, amount)
@@ -56,14 +60,17 @@ def Main(operation, args):
     ############# Methods for Admin account only defination Ends  ################
     #################### Purchase method for player Starts  ######################
     if operation == "purchase":
-        assert (len(args) == 2)
+        assert (len(args) == 3)
         account = args[0]
         gpId = args[1]
-        return purchase(account, gpId)
+        gpAmount = args[2]
+        return purchase(account, gpId, gpAmount)
     #################### Purchase method for player Ends  ######################
     #################### Pre-execute methods defination Starts  ######################
     if operation == "getPropertyReversedHash":
         return getPropertyReversedHash()
+    if operation == "getGPMaxPerTx":
+        return getGPMaxPerTx()
     if operation == "getGP":
         assert (len(args) == 1)
         gpId = args[0]
@@ -117,6 +124,12 @@ def setGP(gpId, gpLimit, price, gpContent):
     Notify(["setGP", gpId, gpLimit, price, gpContent])
     return True
 
+def setGPMaxPerTx(limit):
+    assert (CheckWitness(Admin))
+    assert (limit > 0)
+    Put(GetContext(), GP_MAX_PER_TX_KEY, limit)
+    Notify(["setMaxGPperTx", limit])
+    return True
 
 def withdraw(toAcct, amount):
     """
@@ -164,36 +177,43 @@ def migrateContract(code, needStorage, name, version, author, email, description
 
 
 #################### Purchase method for player Starts  ######################
-def purchase(account, gpId):
+def purchase(account, gpId, gpAmount):
     """
     Before purchase, make sure
     1. CEO in Property contract has make the preSaleProperty.py contract as the authorized account
     2. Admin has run setGP() to store the package info within preSaleProperty contract.
     :param account:
     :param gpId:
+    :param gpAmount
     :return:
     """
     assert (_whenNotPaused())
     assert (CheckWitness(account))
+    gpMaxPerTx = getGPMaxPerTx()
+    if not gpMaxPerTx:
+        assert (gpAmount > 0)
+    else:
+        assert (gpAmount > 0 and gpAmount <= gpMaxPerTx)
     # make sure there are enough available gift packages left
     gpLeft = getGPLeft(gpId)
-    assert (gpLeft > 0)
+    assert (gpLeft >= gpAmount)
     # get the gift package info
     priceContent = getGP(gpId)
     assert (len(priceContent) == 2)
     price = priceContent[0]
     content = priceContent[1]
     # transfer ONG from account to the contract
-    assert (_tranferNativeAsset(ONGAddress, account, SelfContractAddress, price))
+    ongToBeTransferred = price * gpAmount
+    assert (_tranferNativeAsset(ONGAddress, account, SelfContractAddress, ongToBeTransferred))
     # mint all the tokens within the gpId gift package.
     argsForMultiMintToken = []
     for ta in content:
         tokenId = ta[0]
-        amount = ta[1]
+        amount = ta[1] * gpAmount
         argsForMultiMintToken.append([account, tokenId, amount])
     assert (DynamicAppCall(getPropertyReversedHash(), "multiMintToken", argsForMultiMintToken))
     Put(GetContext(), _concatkey(GP_LEFT_PREFIX, gpId), gpLeft - 1)
-    Notify(["purchase", account, gpId, price])
+    Notify(["purchase", account, gpId, price, gpAmount])
     return True
 #################### Purchase method for player Ends  ######################
 
@@ -202,6 +222,8 @@ def purchase(account, gpId):
 def getPropertyReversedHash():
     return Get(GetContext(), PROPERTY_REVERSED_HASH_KEY)
 
+def getGPMaxPerTx():
+    return Get(GetContext(), GP_MAX_PER_TX_KEY)
 
 def getGP(gpId):
     gpMapInfo = Get(GetContext(), _concatkey(GP_PREFIX, gpId))
