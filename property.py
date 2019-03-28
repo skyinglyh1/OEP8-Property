@@ -198,8 +198,12 @@ def transfer(fromAcct, toAcct, tokenId, amount):
     balanceKey = _concatkey(BALANCE_PREFIX, tokenId)
     fromKey = _concatkey(balanceKey, fromAcct)
     fromBalance = Get(GetContext(), fromKey)
-    if amount > fromBalance or amount <= 0:
-        return False
+
+    # if amount > fromBalance or amount <= 0:
+    #     return False
+
+    assert (amount <= fromBalance and amount > 0)
+
     if amount == fromBalance:
         Delete(GetContext(), fromKey)
     else:
@@ -335,7 +339,6 @@ def transferFromMulti(args):
 #################### Special methods for CEO only defination starts  ######################
 def setCLevel(option, account):
     """
-
     :param option: can be "CTO", "COO"
     :param account: the account to be set as the CLevel account
     :return:
@@ -426,7 +429,6 @@ def unpause():
 ############# Special methods for C Level accounts only defination Ends  ################
 
 
-
 ############# Special methods for C Level and authorized level defination Starts  ################
 def mintToken(toAcct, tokenId, amount):
     assert (_whenNotPaused())
@@ -445,6 +447,7 @@ def mintToken(toAcct, tokenId, amount):
     assert (totalSupply(tokenId) <= 10000000000)
     # Notify the event to the block chain
     TransferEvent("", toAcct, tokenId, amount)
+    # Notify(["transfer", "", toAcct, tokenId, amount])
     return True
 
 def multiMintToken(args):

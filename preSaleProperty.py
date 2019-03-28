@@ -206,7 +206,7 @@ def getPropertyReversedHash():
 def getGP(gpId):
     gpMapInfo = Get(GetContext(), _concatkey(GP_PREFIX, gpId))
     if not gpMapInfo:
-        return False
+        return []
     gpMap = Deserialize(gpMapInfo)
     price = gpMap["price"]
     contentInfo = gpMap["content"]
