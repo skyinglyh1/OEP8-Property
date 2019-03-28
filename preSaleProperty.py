@@ -13,6 +13,7 @@ ONTAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0
 ONGAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02')
 
 Admin = Base58ToAddress("AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p")
+PreSaleReceiver = Base58ToAddress("AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p")
 SelfContractAddress = GetExecutingScriptHash()
 # GP means gift package
 GP_PREFIX = "GPContent"
@@ -39,10 +40,7 @@ def Main(operation, args):
         limit = args[0]
         return setGPMaxPerTx(limit)
     if operation == "withdraw":
-        assert (len(args) == 2)
-        toAcct = args[0]
-        amount = args[1]
-        return withdraw(toAcct, amount)
+        return withdraw()
     if operation == "pause":
         return pause()
     if operation == "unpause":
@@ -131,15 +129,20 @@ def setGPMaxPerTx(limit):
     Notify(["setMaxGPperTx", limit])
     return True
 
-def withdraw(toAcct, amount):
+def withdraw():
     """
-    :param toAcct: the account that will receive the asset coming from preSale
-    :param amount: the amount of asset will be withdrawn to toAcct
+    In case someone transfers ong or ont into this contract by accident, Admin can withdraw all the money left in the contract.
     :return:
     """
     assert (CheckWitness(Admin))
-    assert (_tranferNativeAsset(ONGAddress, SelfContractAddress, toAcct, amount))
-    Notify(["withdraw", toAcct, amount])
+    param = state(SelfContractAddress)
+    totalOngAmount = Invoke(0, ONGAddress, 'balanceOf', param)
+    if totalOngAmount > 0:
+        assert (_tranferNativeAsset(ONGAddress, SelfContractAddress, PreSaleReceiver, totalOngAmount))
+    totalOntAmount = Invoke(0, ONTAddress, 'balanceOf', param)
+    if totalOntAmount > 0:
+        assert (_tranferNativeAsset(ONTAddress, SelfContractAddress, PreSaleReceiver, totalOntAmount))
+    Notify(["withdraw", PreSaleReceiver, totalOngAmount, totalOntAmount])
     return True
 
 def pause():
@@ -204,7 +207,7 @@ def purchase(account, gpId, gpAmount):
     content = priceContent[1]
     # transfer ONG from account to the contract
     ongToBeTransferred = price * gpAmount
-    assert (_tranferNativeAsset(ONGAddress, account, SelfContractAddress, ongToBeTransferred))
+    assert (_tranferNativeAsset(ONGAddress, account, PreSaleReceiver, ongToBeTransferred))
     # mint all the tokens within the gpId gift package.
     argsForMultiMintToken = []
     for ta in content:
