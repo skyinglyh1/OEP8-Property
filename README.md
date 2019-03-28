@@ -109,9 +109,13 @@ This is the pre sale smart contract for property tokens.
 
 ```gpContent``` should be a list(or an array). Say, ```[[tokenId1, amount1], [tokenId2, amount2], ..., [tokenIdN, amountN]]```
 
-3. ```withdraw(toAcct, amount)```
 
-```Admin``` account can withdraw the pre sale asset to ```toAcct``` with amount of ONG.
+
+3. ```withdraw()```
+
+```Admin``` account can withdraw all the ONT/ONG asset within the contract to ```PreSaleReceiver```.
+
+In case someone transfers ong or ont into this contract by accident, Admin can withdraw all the money left in the contract.
 
 Note the usage of amount is the same as gpContent in 2.
 
@@ -140,6 +144,15 @@ Return ```[price, [[tokenId1, amount1], [tokenId2, amount2], ..., [tokenIdN, amo
 
 Return the number of gift packages left available for sale.
 
+11. ```setGPMaxPerTx(limit)```
+
+Admin can invoke this method to set the maximum number of GP every time the user purchase gift packages. 
+
+```limit``` is the maximum number of gift packages every time the user can purchase within ONE transaction.
+
+12. ```getGPMaxPerTx()```
+
+Return the maximum number of gift packages every time the user can purchase within ONE transaction.
 
 #### preSale Property Contract Instruction
 ```markdown
