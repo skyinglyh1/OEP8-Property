@@ -363,7 +363,7 @@ def setAuthorizedLevel(account):
         Notify(["alreadyInAuthorizedLevel", account])
         return True
     if not isAuthorized:
-        Put(GetContext(), _concatkey(AUTHORIZED_LEVEL_PREFIX, account))
+        Put(GetContext(), _concatkey(AUTHORIZED_LEVEL_PREFIX, account), "T")
     Notify(["setAuthorizedLevel", account])
     return True
 
