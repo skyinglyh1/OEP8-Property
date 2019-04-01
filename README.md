@@ -71,7 +71,9 @@ Return the CTO address
 
 Return the COO address
 
-14. ```getAuthorizedLevel()```
+14. ```isAuthorizedLevel(account)```
+
+Return True or False to check if account is the authorized account.
 
 Return the authorized account in a list
 

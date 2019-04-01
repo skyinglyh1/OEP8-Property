@@ -18,7 +18,7 @@ ApprovalEvent = RegisterAction("approval", "owner", "spender", "tokenId", "amoun
 CEO_ADDRESS_KEY = "CEO"
 CTO_ADDRESS_KEY = "CTO"
 COO_ADDRESS_KEY = "COO"
-AUTHORIZED_LEVEL_PREFIX = "AuthorizedLevel"
+AUTHORIZED_ADDRESS_LIST_KEY = "AuthorizedAddress"
 CEOAddress = Base58ToAddress('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
 
 
@@ -141,10 +141,8 @@ def Main(operation, args):
         return getCTO()
     if operation == "getCOO":
         return getCOO()
-    if operation == "isAuthorizedLevel":
-        assert (len(args) == 1)
-        account = args[0]
-        return isAuthorizedLevel(account)
+    if operation == "getAuthorizedLevel":
+        return getAuthorizedLevel()
     #################### Optional methods defination Ends ######################
     return False
 
@@ -358,23 +356,33 @@ def setCLevel(option, account):
 def setAuthorizedLevel(account):
     assert (CheckWitness(CEOAddress))
     assert (len(account) == 20)
-    isAuthorized = Get(GetContext(), _concatkey(AUTHORIZED_LEVEL_PREFIX, account))
-    if isAuthorized == "T":
-        Notify(["alreadyInAuthorizedLevel", account])
-        return True
-    if not isAuthorized:
-        Put(GetContext(), _concatkey(AUTHORIZED_LEVEL_PREFIX, account))
+    authorizedAddressList = []
+    authorizedAddressListInfo = Get(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY)
+    if not authorizedAddressListInfo:
+        authorizedAddressList.append(account)
+    else:
+        authorizedAddressList = Deserialize(authorizedAddressListInfo)
+        if _checkInList(account, authorizedAddressList):
+            Notify(["alreadyInAuthorizedLevel", account])
+            return True
+        else:
+            authorizedAddressList.append(account)
+    Put(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY, Serialize(authorizedAddressList))
     Notify(["setAuthorizedLevel", account])
     return True
-
-
 
 def removeAuthorizedLevel(account):
     assert (CheckWitness(CEOAddress))
     assert (len(account) == 20)
-    # make sure account is authorized before.
-    assert (isAuthorizedLevel(account))
-    Delete(GetContext(),_concatkey(AUTHORIZED_LEVEL_PREFIX, account))
+    authorizedAddressListInfo = Get(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY)
+    assert (authorizedAddressListInfo)
+    authorizedAddressList = Deserialize(authorizedAddressListInfo)
+    assert (_checkInList(account, authorizedAddressList))
+    index = _findInList(account, authorizedAddressList)
+    # make sure index did exist in authorizedAddressList
+    assert (index < len(authorizedAddressList))
+    authorizedAddressList.remove(index)
+    Put(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY, Serialize(authorizedAddressList))
     Notify(["removeAuthorizedLevel", account])
     return True
 
@@ -493,11 +501,12 @@ def getCOO():
     """
     return Get(GetContext(), COO_ADDRESS_KEY)
 
-def isAuthorizedLevel(account):
-    isAuthorized = Get(GetContext(), _concatkey(AUTHORIZED_LEVEL_PREFIX, account))
-    if isAuthorized == "T":
-        return True
-    return False
+def getAuthorizedLevel():
+    authorizedAddressListInfo = Get(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY)
+    if  authorizedAddressListInfo:
+        return Deserialize(authorizedAddressListInfo)
+    else:
+        return []
 #################### Optional methods defination Ends ######################
 
 
@@ -545,6 +554,21 @@ def _tokenExist(tokenId):
         return True
     else:
         return False
+
+def _checkInList(e, l):
+    for eInl in l:
+        if eInl == e:
+            return True
+    return False
+
+def _findInList(e, l):
+    index = 0
+    for eInl in l:
+        if eInl == e:
+            return index
+        index = index + 1
+    return index
+
 
 def _concatkey(str1, str2):
     return concat(concat(str1, '_'), str2)
