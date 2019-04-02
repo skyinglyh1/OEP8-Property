@@ -42,9 +42,11 @@ These two methods are for C level accounts(CEO, CTO, COO) to pause the property 
 
 #### Methods for C Level and authorized level 
 
-8. ```mintToken(toAcct, tokenId, amount)```
+8. ```mintToken(mintAcct, toAcct, tokenId, amount)```
 
 C level and authorized level accounts have the right to mint token (make sure the ```tokenId``` type of token has been created before).
+
+```mintAcct``` is the account which has the right to mint Tokens.
 
 ```toAcct``` is the account  that will received ```amount``` of tokens of ```tokenId``` type.
 
@@ -73,9 +75,7 @@ Return the COO address
 
 14. ```isAuthorizedLevel(account)```
 
-Return True or False to check if account is the authorized account.
-
-Return the authorized account in a list
+Return if account has been authorized.
 
 #### Property Contract Instruction
 ```markdown
@@ -122,13 +122,30 @@ In case someone transfers ong or ont into this contract by accident, Admin can w
 Note the usage of amount is the same as gpContent in 2.
 
 5. ```pause()```
+
 6. ```unpause()```
 
 These two methods are for ```Admin``` to pause the property contract. Once the contract is paused, the ```purchase``` function will be frozen.
 
-7. ```purchase(account, gpId)``` is for players to buy gift package.
+7.  ```purchase(account, gpId, gpAmount, willMint)``` is for players to buy gift package.
+
 ```account``` is the buyer
+
 ```gpId``` is the type of gift package.
+
+```gpAmount``` is the amount of package the buyer wants to purchase
+
+With ```willMint``` parameters, the difference is:
+```markdown
+With willMint == True, token will be minted from property contract by the account corresponding with this contract,
+and then transferred to the buyer directly.
+
+With willMint == False, tokens will exist in the contract account first.
+When buyer purchase2 the gift package, the tokens will be transferred from the contract to the buyer directly.
+
+    
+```
+
 
 8. ```getPropertyReversedHash()```
 

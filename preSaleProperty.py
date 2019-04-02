@@ -45,6 +45,13 @@ def Main(operation, args):
         return pause()
     if operation == "unpause":
         return unpause()
+    if operation == "burn":
+        assert (len(args) == 2)
+        tokenId = args[0]
+        amount = args[1]
+        return burn(tokenId, amount)
+    if operation == "burns":
+        return burns(args)
     if operation == "migrateContract":
         assert (len(args) == 7)
         code = args[0]
@@ -58,11 +65,12 @@ def Main(operation, args):
     ############# Methods for Admin account only defination Ends  ################
     #################### Purchase method for player Starts  ######################
     if operation == "purchase":
-        assert (len(args) == 3)
+        assert (len(args) == 4)
         account = args[0]
         gpId = args[1]
         gpAmount = args[2]
-        return purchase(account, gpId, gpAmount)
+        willMint = args[3]
+        return purchase(account, gpId, gpAmount, willMint)
     #################### Purchase method for player Ends  ######################
     #################### Pre-execute methods defination Starts  ######################
     if operation == "getPropertyReversedHash":
@@ -157,6 +165,27 @@ def unpause():
     Notify(["unpause"])
     return True
 
+def burn(tokenId, amount):
+    assert (_whenNotPaused())
+    assert (CheckWitness(Admin))
+    # make sure the tokenId has been created in property contract <=> name of tokenId is NOT None
+    propertyReversedHash = getPropertyReversedHash()
+    balance = DynamicAppCall(propertyReversedHash, "balanceOf", [SelfContractAddress])
+    assert (balance > 0)
+    assert (amount > 0 and amount <= balance)
+    # burn tokens
+    burnRes = DynamicAppCall(propertyReversedHash, "burnToken", [SelfContractAddress, tokenId, amount])
+    assert (burnRes)
+    Notify(["burn", tokenId, amount])
+    return True
+
+def burns(args):
+    for p in args:
+        assert (len(p) == 2)
+        assert (burn(p[0], p[1]))
+    return True
+
+
 def migrateContract(code, needStorage, name, version, author, email, description):
     assert (CheckWitness(Admin))
     assert (_whenNotPaused() == False)
@@ -180,18 +209,22 @@ def migrateContract(code, needStorage, name, version, author, email, description
 
 
 #################### Purchase method for player Starts  ######################
-def purchase(account, gpId, gpAmount):
+def purchase(account, gpId, gpAmount, willMint):
     """
+    in purchase1, token will be minted from property contract by the account corresponding with this contract,
+    and then transfer to the buyer directly.
     Before purchase, make sure
     1. CEO in Property contract has make the preSaleProperty.py contract as the authorized account
     2. Admin has run setGP() to store the package info within preSaleProperty contract.
     :param account:
     :param gpId:
-    :param gpAmount
+    :param gpAmount: the amount of package the buyer wants to purchase
+    :param willMint: False => NO mint, do transfer directly. True => Mint, then do transfer.
     :return:
     """
     assert (_whenNotPaused())
     assert (CheckWitness(account))
+    assert (PreSaleReceiver != account)
     gpMaxPerTx = getGPMaxPerTx()
     if not gpMaxPerTx:
         assert (gpAmount > 0)
@@ -208,16 +241,22 @@ def purchase(account, gpId, gpAmount):
     # transfer ONG from account to the contract
     ongToBeTransferred = price * gpAmount
     assert (_tranferNativeAsset(ONGAddress, account, PreSaleReceiver, ongToBeTransferred))
-    # mint all the tokens within the gpId gift package.
-    argsForMultiMintToken = []
-    for ta in content:
-        tokenId = ta[0]
-        amount = ta[1] * gpAmount
-        argsForMultiMintToken.append([account, tokenId, amount])
-    assert (DynamicAppCall(getPropertyReversedHash(), "multiMintToken", argsForMultiMintToken))
-    Put(GetContext(), _concatkey(GP_LEFT_PREFIX, gpId), gpLeft - 1)
+
+    if willMint == True:
+        # mint all the tokens within the gpId gift package.
+        assert (_doMintTransfer(account, content, gpAmount))
+    elif willMint == False:
+        # transfer all the tokens within the gpId gift package from this contract
+        assert (_doTransfer(account, content, gpAmount))
+    else:
+        # roll back
+        raise Exception("wrong parameter!")
+
+    Put(GetContext(), _concatkey(GP_LEFT_PREFIX, gpId), gpLeft - gpAmount)
     Notify(["purchase", account, gpId, price, gpAmount])
     return True
+
+
 #################### Purchase method for player Ends  ######################
 
 
@@ -244,6 +283,25 @@ def getGPLeft(gpId):
 
 
 #################### Private methods defination starts ######################
+
+def _doTransfer(account, content, gpAmount):
+    argsForTransferMulti = []
+    for ta in content:
+        tokenId = ta[0]
+        amount = ta[1] * gpAmount
+        argsForTransferMulti.append([SelfContractAddress, account, tokenId, amount])
+    assert (DynamicAppCall(getPropertyReversedHash(), "transferMulti", argsForTransferMulti))
+    return True
+
+def _doMintTransfer(account, content, gpAmount):
+    argsForMultiMintToken = []
+    for ta in content:
+        tokenId = ta[0]
+        amount = ta[1] * gpAmount
+        argsForMultiMintToken.append([account, tokenId, amount])
+    assert (DynamicAppCall(getPropertyReversedHash(), "multiMintToken", argsForMultiMintToken))
+    return True
+
 def _whenNotPaused():
     isPaused = Get(GetContext(), PRESALE_PAUSED_KEY)
     if isPaused == "T":

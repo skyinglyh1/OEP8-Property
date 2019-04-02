@@ -7,7 +7,7 @@ from ontology.interop.System.Runtime import CheckWitness, Notify, Deserialize, S
 from ontology.interop.System.Action import RegisterAction
 
 from ontology.interop.Ontology.Runtime import Base58ToAddress
-from ontology.builtins import concat, len, append, remove
+from ontology.builtins import concat, len, append
 
 
 
@@ -120,11 +120,12 @@ def Main(operation, args):
     ############# Special methods for C Level accounts only defination Ends  ################
     ############# Special methods for C Level and authorized level defination Starts  ################
     if operation == "mintToken":
-        assert (len(args) == 3)
-        toAcct = args[0]
-        tokenId = args[1]
-        amount = args[2]
-        return mintToken(toAcct, tokenId, amount)
+        assert (len(args) == 4)
+        mintAcct = args[0]
+        toAcct = args[1]
+        tokenId = args[2]
+        amount = args[3]
+        return mintToken(mintAcct, toAcct, tokenId, amount)
     if operation == "multiMintToken":
         return multiMintToken(args)
     if operation == "burnToken":
@@ -422,9 +423,10 @@ def unpause():
 
 
 ############# Special methods for C Level and authorized level defination Starts  ################
-def mintToken(toAcct, tokenId, amount):
+def mintToken(mintAcct, toAcct, tokenId, amount):
+    assert (CheckWitness(mintAcct))
     assert (_whenNotPaused())
-    assert (_onlyCLevel() or _onlyAuthorizedLevel())
+    assert (_onlyCLevel() or _onlyAuthorizedLevel(mintAcct))
     # make sure the to address is legal
     assert (len(toAcct) == 20)
     # make sure the tokenId has been created already
@@ -445,12 +447,12 @@ def mintToken(toAcct, tokenId, amount):
 def multiMintToken(args):
     for p in args:
         assert (len(p) == 3)
-        assert (mintToken(p[0], p[1], p[2]))
+        assert (mintToken(p[0], p[1], p[2], p[3]))
     return True
 
 def burnToken(account, tokenId, amount):
     assert (_whenNotPaused())
-    assert (_onlyCLevel())
+    assert (_onlyCLevel() or _onlyAuthorizedLevel(account))
     # make sure the tokenId has been created already
     assert (_tokenExist(tokenId))
     # make sure the amount is legal, which is greater than ZERO
@@ -515,15 +517,8 @@ def _onlyCLevel():
         isCOO = CheckWitness(COOAddress)
     return isCEO or isCTO or isCOO
 
-def _onlyAuthorizedLevel():
-    authorizedAddressListInfo = Get(GetContext(), AUTHORIZED_ADDRESS_LIST_KEY)
-    if not authorizedAddressListInfo:
-        return False
-    authorizedAddressList = Deserialize(authorizedAddressListInfo)
-    for authorizedAddress in authorizedAddressList:
-        if CheckWitness(authorizedAddress):
-            return True
-    return False
+def _onlyAuthorizedLevel(account):
+    return isAuthorizedLevel(account) == "T"
 
 def _whenNotPaused():
     isPaused = Get(GetContext(), CONTRACT_PAUSED_KEY)
