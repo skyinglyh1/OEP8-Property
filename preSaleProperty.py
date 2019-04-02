@@ -289,6 +289,7 @@ def _doTransfer(account, content, gpAmount):
     for ta in content:
         tokenId = ta[0]
         amount = ta[1] * gpAmount
+        # transfer(fromAcct, toAcct, tokenId, amount)
         argsForTransferMulti.append([SelfContractAddress, account, tokenId, amount])
     assert (DynamicAppCall(getPropertyReversedHash(), "transferMulti", argsForTransferMulti))
     return True
@@ -298,7 +299,8 @@ def _doMintTransfer(account, content, gpAmount):
     for ta in content:
         tokenId = ta[0]
         amount = ta[1] * gpAmount
-        argsForMultiMintToken.append([account, tokenId, amount])
+        # mintToken(mintAcct, toAcct, tokenId, amount)
+        argsForMultiMintToken.append([SelfContractAddress, account, tokenId, amount])
     assert (DynamicAppCall(getPropertyReversedHash(), "multiMintToken", argsForMultiMintToken))
     return True
 
