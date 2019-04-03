@@ -211,7 +211,7 @@ def migrateContract(code, needStorage, name, version, author, email, description
 #################### Purchase method for player Starts  ######################
 def purchase(account, gpId, gpAmount, willMint):
     """
-    in purchase1, token will be minted from property contract by the account corresponding with this contract,
+    in purchase, token will be minted from property contract by the account corresponding with this contract,
     and then transfer to the buyer directly.
     Before purchase, make sure
     1. CEO in Property contract has make the preSaleProperty.py contract as the authorized account
@@ -241,7 +241,6 @@ def purchase(account, gpId, gpAmount, willMint):
     # transfer ONG from account to the contract
     ongToBeTransferred = price * gpAmount
     assert (_tranferNativeAsset(ONGAddress, account, PreSaleReceiver, ongToBeTransferred))
-
     if willMint == True:
         # mint all the tokens within the gpId gift package.
         assert (_doMintTransfer(account, content, gpAmount))
@@ -283,7 +282,6 @@ def getGPLeft(gpId):
 
 
 #################### Private methods defination starts ######################
-
 def _doTransfer(account, content, gpAmount):
     argsForTransferMulti = []
     for ta in content:
@@ -292,6 +290,7 @@ def _doTransfer(account, content, gpAmount):
         # transfer(fromAcct, toAcct, tokenId, amount)
         argsForTransferMulti.append([SelfContractAddress, account, tokenId, amount])
     assert (DynamicAppCall(getPropertyReversedHash(), "transferMulti", argsForTransferMulti))
+
     return True
 
 def _doMintTransfer(account, content, gpAmount):
@@ -303,6 +302,7 @@ def _doMintTransfer(account, content, gpAmount):
         argsForMultiMintToken.append([SelfContractAddress, account, tokenId, amount])
     assert (DynamicAppCall(getPropertyReversedHash(), "multiMintToken", argsForMultiMintToken))
     return True
+
 
 def _whenNotPaused():
     isPaused = Get(GetContext(), PRESALE_PAUSED_KEY)

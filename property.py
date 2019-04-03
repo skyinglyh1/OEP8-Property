@@ -425,8 +425,9 @@ def unpause():
 ############# Special methods for C Level and authorized level defination Starts  ################
 def mintToken(mintAcct, toAcct, tokenId, amount):
     assert (CheckWitness(mintAcct))
+
     assert (_whenNotPaused())
-    assert (_onlyCLevel() or _onlyAuthorizedLevel(mintAcct))
+    assert (_onlyCLevel() or isAuthorizedLevel(mintAcct))
     # make sure the to address is legal
     assert (len(toAcct) == 20)
     # make sure the tokenId has been created already
@@ -446,13 +447,18 @@ def mintToken(mintAcct, toAcct, tokenId, amount):
 
 def multiMintToken(args):
     for p in args:
-        assert (len(p) == 3)
+        assert (len(p) == 4)
         assert (mintToken(p[0], p[1], p[2], p[3]))
     return True
 
+    # for p in args:
+    #     assert (len(p) == 4)
+    #     assert (transfer(p[0], p[1], p[2], p[3]))
+    # return True
+
 def burnToken(account, tokenId, amount):
     assert (_whenNotPaused())
-    assert (_onlyCLevel() or _onlyAuthorizedLevel(account))
+    assert (_onlyCLevel() or isAuthorizedLevel(account))
     # make sure the tokenId has been created already
     assert (_tokenExist(tokenId))
     # make sure the amount is legal, which is greater than ZERO
@@ -516,9 +522,6 @@ def _onlyCLevel():
     if len(COOAddress) == 20:
         isCOO = CheckWitness(COOAddress)
     return isCEO or isCTO or isCOO
-
-def _onlyAuthorizedLevel(account):
-    return isAuthorizedLevel(account) == "T"
 
 def _whenNotPaused():
     isPaused = Get(GetContext(), CONTRACT_PAUSED_KEY)
